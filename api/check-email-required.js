@@ -1,17 +1,20 @@
-const express = require('express');
-const router = express.Router();
 const { calculateDistance } = require('../services/distance');
 const { calculatePrice } = require('../services/pricing');
 
-router.post('/check-email-required', async (req, res) => {
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
     try {
         const { pickupAddress, destinationAddress, city, vehicleType = 'Economy' } = req.body;
 
         // Validate required fields
         if (!pickupAddress || !destinationAddress || !city) {
-            return res.status(400).json({
+            res.status(400).json({
                 error: 'Missing required fields: pickupAddress, destinationAddress, city'
             });
+            return;
         }
 
         // Calculate distance using mock logic
@@ -19,9 +22,10 @@ router.post('/check-email-required', async (req, res) => {
 
         // Check if distance is too far
         if (distance > 1000) {
-            return res.status(422).json({
+            res.status(422).json({
                 error: 'Too far to offer ride'
             });
+            return;
         }
 
         // Calculate price
@@ -29,7 +33,8 @@ router.post('/check-email-required', async (req, res) => {
         try {
             price = calculatePrice(city, vehicleType, distance, pickupAddress, destinationAddress);
         } catch (err) {
-            return res.status(400).json({ error: err.message });
+            res.status(400).json({ error: err.message });
+            return;
         }
 
         // Logic to determine if email is required
@@ -39,17 +44,10 @@ router.post('/check-email-required', async (req, res) => {
             !['London', 'Paris'].includes(city) 
         );
 
-        
-        console.log({ distance, price, city, vehicleType, isEmailRequired });
-
         res.json(isEmailRequired);
-
     } catch (error) {
-        console.error('Error:', error);
         res.status(500).json({
             error: error.message || 'Internal server error'
         });
     }
-});
-
-module.exports = router; 
+}; 
